@@ -1,4 +1,6 @@
 from flask import Flask, render_template, jsonify
+from geojson import Point, Feature
+
 app = Flask(__name__)
 
 # Use http://share.mapbbcode.org with export geojson to generate debug track
@@ -17,7 +19,8 @@ def getPos():
 	index = index +1
 	if index >= len(track):
 		index = 0
-	return jsonify(lat=track[index][1],lng=track[index][0])
+	p = Feature(geometry=Point((track[index][0],track[index][1])), id=index)
+	return str(p)
 
 if __name__ == "__main__":
 	app.run()
