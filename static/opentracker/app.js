@@ -9,6 +9,7 @@ function OpenTrackerApp() {
 
 	this.map = null;
 	this.autocenter = true;
+	this.last_position = null;
 }
 
 /**
@@ -28,6 +29,7 @@ OpenTrackerApp.prototype.initMap = function() {
 	var southWest = L.latLng(47.9690, -1.95019);
 	var northEast = L.latLng(48.30274, -1.4649);
 	var maxBounds = L.latLngBounds(southWest, northEast);
+	this.last_position = maxBounds.getCenter();
 
 	this.map = L.map("map", {
 		attributionControl: false,
@@ -47,18 +49,21 @@ OpenTrackerApp.prototype.initMap = function() {
 	    }, {
 	        interval: 1000,
 		    pointToLayer: function (feature, latlng) {
-		        return L.marker(latlng, {
+		    	console.log(latlng.lng-this.last_position.lng);
+		    	this.last_position = latlng;
+		        var marker = L.marker(latlng, {
 		            'icon': L.icon({
 		                iconUrl: "/static/images/car.png",
 		                shadowUrl: "",
-		                iconSize:     [32, 32], // size of the icon
-		                shadowSize:   [0, 0], // size of the shadow
-		                iconAnchor:   [16, 16], // point of the icon which will correspond to marker's location
-		                shadowAnchor: [0, 0],  // the same for the shadow
-		                popupAnchor:  [0, 0] // point from which the popup should open relative to the iconAnchor
+		                iconSize:     [32, 32],
+		                shadowSize:   [0, 0],
+		                iconAnchor:   [16, 16],
+		                shadowAnchor: [0, 0],
+		                popupAnchor:  [0, 0]
 		            })
 		        });
-		    }
+		        return marker;
+		    }.bind(this)
 	    }
      );
 
