@@ -188,7 +188,6 @@ OpenTrackerApp.prototype.getAddress = function(position) {
 					_.isObject(data.features[0]) &&
 					_.isObject(data.features[0].properties)) {
 					var p = data.features[0].properties;
-					console.log(p)
 
 					if (!_.isUndefined(p.city)) {
 						city = p.city;
