@@ -10,6 +10,7 @@ function OpenTrackerApp() {
 	this.map = null;
 	this.autocenter = true;
 	this.last_position = null;
+	this.center_marker = null;
 }
 
 /**
@@ -18,7 +19,7 @@ function OpenTrackerApp() {
 OpenTrackerApp.prototype.init = function() {
 
 	window.onload = function() {
-		this.start();
+		// TODO
 	}.bind(this);
 
 	this.initMap();
@@ -49,7 +50,6 @@ OpenTrackerApp.prototype.initMap = function() {
 	    }, {
 	        interval: 1000,
 		    pointToLayer: function (feature, latlng) {
-		    	console.log(latlng.lng-this.last_position.lng);
 		    	this.last_position = latlng;
 		        var marker = L.marker(latlng, {
 		            'icon': L.icon({
@@ -92,6 +92,7 @@ OpenTrackerApp.prototype.initMap = function() {
 	            title:     'stop auto center', // like its title
 	            onClick: function(btn, map) {  // and its callback
 	            	this.autocenter = false;
+	            	this.showCenterMarker(true);
 	                btn.state('autocenter-disactivated'); // change state on click!
 	            }.bind(this)
 	        }, {
@@ -107,13 +108,32 @@ OpenTrackerApp.prototype.initMap = function() {
 
 	stateChangingButton.addTo(this.map);
 
+	this.map.on("moveend", this.onMapMoveEnd.bind(this));
+
 
 };
 
-OpenTrackerApp.prototype.start = function() {
+OpenTrackerApp.prototype.showCenterMarker = function(visibility) {
+	if(visibility)
+	{
+		this.center_marker = L.marker(this.map.center());
+		this.center_marker.addTo(this.map);
+	}
+	else
+	{
+		if(this.center_marker !== null)
+		{
+			this.map.removeLayer(this.center_marker);
+			this.center_marker = null;
+		}
+	}
+};
 
-
-
+OpenTrackerApp.prototype.onMapMoveEnd = function() {
+	if(!this.autocenter)
+	{
+		this.center_marker.setLatLng(this.map.center());
+	}
 };
 
 OpenTrackerApp.prototype.updatePosition = function() {
