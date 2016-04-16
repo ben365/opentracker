@@ -13,6 +13,7 @@ function OpenTrackerApp() {
 	this.center_marker = null;
 	this.info_control = null;
 	this.car_is_stopped = true;
+	this.routing = null;
 }
 
 /**
@@ -103,7 +104,7 @@ OpenTrackerApp.prototype.initMap = function() {
 	var stateChangingButton = L.easyButton({
 		states: [{
 			stateName: 'autocenter-activated', // name the state
-			icon: 'fa-dot-circle-o', // and define its properties
+			icon: 'fa-circle-o', // and define its properties
 			title: 'stop auto center', // like its title
 			onClick: function(btn, map) { // and its callback
 				this.autocenter = false;
@@ -112,10 +113,11 @@ OpenTrackerApp.prototype.initMap = function() {
 			}.bind(this)
 		}, {
 			stateName: 'autocenter-disactivated',
-			icon: 'fa-circle-o',
+			icon: 'fa-dot-circle-o',
 			title: 'start autocenter',
 			onClick: function(btn, map) {
 				this.autocenter = true;
+				this.showCenterMarker(false);
 				btn.state('autocenter-activated');
 			}.bind(this)
 		}]
@@ -130,8 +132,24 @@ OpenTrackerApp.prototype.initMap = function() {
 
 OpenTrackerApp.prototype.showCenterMarker = function(visibility) {
 	if (visibility) {
-		this.center_marker = L.marker(this.map.getCenter());
+
+		var centerIcon = L.icon({
+		    iconUrl: 'static/images/circular.png',
+		    shadowUrl: '',
+
+		    iconSize:     [32, 32],
+		    shadowSize:   [0, 0],
+		    iconAnchor:   [16, 16],
+		    shadowAnchor: [0, 0],
+		    popupAnchor:  [0, 0]
+		});
+
+		this.center_marker = L.marker(this.map.getCenter(), {icon: centerIcon});
+
+		var center_marker_popup = L.popup().setContent('<button onclick="app.onItineraryClick();return false;">Afficher l\'itinéraire pour venir ici</button>');
+		this.center_marker.bindPopup(center_marker_popup);
 		this.center_marker.addTo(this.map);
+
 	} else {
 		if (this.center_marker !== null) {
 			this.map.removeLayer(this.center_marker);
@@ -203,4 +221,20 @@ OpenTrackerApp.prototype.getAddress = function(position) {
 				}
 			}.bind(this));
 	}
+};
+
+OpenTrackerApp.prototype.onItineraryClick = function() {
+
+	if(this.routing !== null)
+	{
+		this.map.removeControl(this.routing);
+	};
+
+	this.routing = L.Routing.control({
+	  waypoints: [this.last_position,this.map.getCenter()]
+	});
+
+	this.routing.addTo(this.map);
+	this.center_marker.closePopup();
+	this.map.fitBounds([this.last_position,this.map.getCenter()]);
 };
