@@ -11,6 +11,8 @@ function OpenTrackerApp() {
 	this.autocenter = true;
 	this.last_position = null;
 	this.center_marker = null;
+	this.info_control = null;
+	this.car_is_stopped = true;
 }
 
 /**
@@ -23,6 +25,9 @@ OpenTrackerApp.prototype.init = function() {
 	}.bind(this);
 
 	this.initMap();
+
+	this.initInfoControl();
+
 }
 
 OpenTrackerApp.prototype.initMap = function() {
@@ -50,18 +55,35 @@ OpenTrackerApp.prototype.initMap = function() {
 	    }, {
 	        interval: 1000,
 		    pointToLayer: function (feature, latlng) {
-		    	this.last_position = latlng;
 		        var marker = L.marker(latlng, {
 		            'icon': L.icon({
-		                iconUrl: "/static/images/car.png",
+		                iconUrl: "/static/images/car_R.png",
 		                shadowUrl: "",
 		                iconSize:     [32, 32],
 		                shadowSize:   [0, 0],
 		                iconAnchor:   [16, 16],
 		                shadowAnchor: [0, 0],
-		                popupAnchor:  [0, 0]
+		                popupAnchor:  [0, 0],
+		                className: "iconCar"
 		            })
 		        });
+		        if (latlng.equals(this.last_position))
+		        {
+		        	this.car_is_stopped = true;
+		        }
+		        else
+		        {
+		        	this.car_is_stopped = false;
+		        }
+		    	if(latlng.lng-this.last_position.lng <0)
+		    	{
+			        $(".iconCar").attr("src","/static/images/car_L.png");
+		    	}
+		    	else
+		    	{
+		    		$(".iconCar").attr("src","/static/images/car_R.png");
+		    	}
+		    	this.last_position = latlng;
 		        return marker;
 		    }.bind(this)
 	    }
@@ -108,15 +130,14 @@ OpenTrackerApp.prototype.initMap = function() {
 
 	stateChangingButton.addTo(this.map);
 
-	this.map.on("moveend", this.onMapMoveEnd.bind(this));
-
+	this.map.on("move", this.onMapMove.bind(this));
 
 };
 
 OpenTrackerApp.prototype.showCenterMarker = function(visibility) {
 	if(visibility)
 	{
-		this.center_marker = L.marker(this.map.center());
+		this.center_marker = L.marker(this.map.getCenter());
 		this.center_marker.addTo(this.map);
 	}
 	else
@@ -129,10 +150,26 @@ OpenTrackerApp.prototype.showCenterMarker = function(visibility) {
 	}
 };
 
-OpenTrackerApp.prototype.onMapMoveEnd = function() {
+OpenTrackerApp.prototype.initInfoControl = function() {
+	this.info_control = L.control();
+
+	this.info_control.onAdd = function (map) {
+	    this.info_control._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+	    this.updateInfoControl("Rennes","Rue du clos cortel");
+	    return this.info_control._div;
+	}.bind(this);
+
+	this.info_control.addTo(this.map);
+};
+
+OpenTrackerApp.prototype.updateInfoControl = function(city,road) {
+	    this.info_control._div.innerHTML = '<h4>' + city + '</h4>' + road;
+}
+
+OpenTrackerApp.prototype.onMapMove = function() {
 	if(!this.autocenter)
 	{
-		this.center_marker.setLatLng(this.map.center());
+		this.center_marker.setLatLng(this.map.getCenter());
 	}
 };
 
@@ -140,7 +177,30 @@ OpenTrackerApp.prototype.updatePosition = function() {
 	if(this.autocenter)
 	{
 		this.map.fitBounds(this.realtime.getBounds(), {maxZoom: this.map.DEFAULT_ZOOM});	
+		this.getAddress();
 	}
 };
 
-
+OpenTrackerApp.prototype.getAddress = function(lat, lng) {
+	if (!this.car_is_stopped) {
+		$.getJSON("https://photon.komoot.de/reverse?lon=" + this.last_position.lng + "&lat=" + this.last_position.lat,
+			function(data) {
+				var road = "";
+				var city = "";
+				if (_.isObject(data) &&
+					_.isObject(data.features) &&
+					_.isObject(data.features[0]) &&
+					_.isObject(data.features[0].properties)) {
+					var p = data.features[0].properties;
+					
+					if (!_.isUndefined(p.city)) {
+						city = p.city;
+					}
+					if (!_.isUndefined(p.name)) {
+						road = p.name;
+					}
+					this.updateInfoControl(city,road);
+				}
+			}.bind(this));
+	}
+};
